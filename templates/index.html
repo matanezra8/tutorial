@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Suggestion Search Bars</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        /* Add some additional styles for better appearance */
+        .search-box {
+            width: 300px;
+            margin-bottom: 10px;
+        }
+
+        .suggestions {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: none;
+            position: absolute;
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: auto;
+            width: 300px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .suggestions li {
+            cursor: pointer;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .suggestions li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Auto-Suggestion Search Bars</h1>
+
+        {% for column_name, values in columns_dict.items() %}
+            <div class="form-group">
+                <label for="{{ column_name }}">{{ column_name }}:</label>
+                <input type="text" class="form-control search-box" id="{{ column_name }}" name="search" oninput="getSuggestions('{{ column_name }}')" onclick="getSuggestions('{{ column_name }}', true)">
+                <ul id="{{ column_name }}-suggestions" class="list-group suggestions"></ul>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        document.addEventListener('click', function(event) {
+            const searchBoxes = document.querySelectorAll('.search-box');
+            const suggestionsLists = document.querySelectorAll('.suggestions');
+
+            // Check if the clicked element is not a search box or a suggestions list
+            let clickedOutside = true;
+
+            searchBoxes.forEach(searchBox => {
+                if (event.target === searchBox) {
+                    clickedOutside = false;
+                }
+            });
+
+            suggestionsLists.forEach(suggestionsList => {
+                if (event.target === suggestionsList) {
+                    clickedOutside = false;
+                }
+            });
+
+            // If the click occurred outside a search box or a suggestions list, hide all suggestions lists
+            if (clickedOutside) {
+                suggestionsLists.forEach(suggestionsList => {
+                    suggestionsList.style.display = 'none';
+                });
+            }
+        });
+
+        function getSuggestions(columnName, showAll) {
+            const searchTerm = document.getElementById(columnName).value;
+            const suggestionsList = document.getElementById(`${columnName}-suggestions`);
+
+            // Make an AJAX request to the Flask route
+            fetch(`/suggest?column=${columnName}&term=${showAll ? '' : searchTerm || ''}`)
+                .then(response => response.json())
+                .then(data => {
+                    suggestionsList.innerHTML = '';
+
+                    // Populate the suggestions dropdown
+                    data.forEach(suggestion => {
+                        const li = document.createElement('li');
+                        li.textContent = suggestion;
+                        li.classList.add('list-group-item');
+                        li.onclick = function() {
+                            document.getElementById(columnName).value = suggestion;
+                            suggestionsList.style.display = 'none';
+                        };
+                        suggestionsList.appendChild(li);
+                    });
+
+                    // Show or hide the suggestions dropdown based on the number of suggestions
+                    suggestionsList.style.display = data.length > 0 ? 'block' : 'none';
+                })
+                .catch(error => console.error('Error fetching suggestions:', error));
+        }
+    </script>
+</body>
+</html>
