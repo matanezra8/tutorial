@@ -22,7 +22,7 @@ columns_dict = df.to_dict(orient='list')
 unique_values_dict = {column: df[column].unique().tolist() for column in df.columns}
 cache.set('my_values', unique_values_dict)
 
-
+print("matan ezra")
 
 @app.route('/')
 def index():
